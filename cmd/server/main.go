@@ -25,12 +25,12 @@ func main() {
 	defer conn.Close(context.Background())
 
 	repo := infrastructure.NewSupabaseRepository(conn)
-	userService := service.NewUserService()
-	userUsecase := usecase.NewUseUsecase(repo, userService)
-	userHandler := handler.NewUserHandler(userUsecase)
+	us := service.NewUserService()
+	uu := usecase.NewUseUsecase(repo, us)
+	uh := handler.NewUserHandler(uu)
 
 	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/user", userHandler.GetUserByID)
+	http.HandleFunc("/user", uh.GetUserByID)
 
 	log.Println("Server is running on port 8080")
 	http.ListenAndServe(":8080", nil)
