@@ -13,6 +13,10 @@ import (
 	"github.com/motty93/clean-architecture/internal/usecase"
 )
 
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Hello, World!"))
+}
+
 func main() {
 	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
@@ -25,6 +29,7 @@ func main() {
 	userUsecase := usecase.NewUseUsecase(repo, userService)
 	userHandler := handler.NewUserHandler(userUsecase)
 
+	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/user", userHandler.GetUserByID)
 
 	log.Println("Server is running on port 8080")
