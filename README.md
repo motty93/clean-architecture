@@ -3,7 +3,7 @@
 - Golang 1.22.5
 ### 起動
 ```bash
-go install
+go mod tidy
 
 air
 ```
