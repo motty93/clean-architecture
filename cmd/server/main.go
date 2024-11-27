@@ -6,19 +6,31 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/motty93/clean-architecture/internal/domain/service"
 	"github.com/motty93/clean-architecture/internal/infrastructure"
 	"github.com/motty93/clean-architecture/internal/interface/handler"
 	"github.com/motty93/clean-architecture/internal/usecase"
 )
 
+var (
+	dbUrl string
+)
+
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Hello, World!"))
 }
 
+func init() {
+	dbUrl = os.Getenv("DATABASE_URL")
+	if dbUrl == "" {
+		log.Fatal("DATABASE_URL is required")
+	}
+
+	log.Printf("Database URL: %s", dbUrl)
+}
+
 func main() {
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	conn, err := infrastructure.NewDatabaseConnection(os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
