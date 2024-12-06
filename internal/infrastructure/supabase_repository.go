@@ -1,11 +1,19 @@
 // インフラ層にSupabaseへの具体的なアクセスロジックを定義する
+// ex1. ページング処理
+// ex2. クエリビルダー
+// ex3. ログ記録
+// ex4. DB操作のヘルパー(汎用的なinsertメソッド)
+// ex5. エラーハンドリングの共通化
+// ex6. メタデータ操作
+
 package infrastructure
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/motty93/clean-architecture/internal/domain/model"
 )
 
 type SupabaseRepository struct {
@@ -16,43 +24,51 @@ func NewSupabaseRepository(conn *pgx.Conn) *SupabaseRepository {
 	return &SupabaseRepository{Conn: conn}
 }
 
-func (s *SupabaseRepository) GetAllUsers(ctx context.Context) ([]*model.User, error) {
-	query := `SELECT * FROM users`
-	rows, err := s.Conn.Query(ctx, query)
+// transaction logic
+func (r *SupabaseRepository) WithTransaction(ctx context.Context, fn func(tx pgx.Tx) error) error {
+	tx, err := r.Conn.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer rows.Close()
 
-	var users []*model.User
-	for rows.Next() {
-		var user model.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email); err != nil {
-			return nil, err
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback(ctx)
+			panic(p)
+		} else if err != nil {
+			_ = tx.Rollback(ctx)
+		} else {
+			err = tx.Commit(ctx)
 		}
-		users = append(users, &user)
-	}
+	}()
 
-	return users, nil
+	err = fn(tx)
+	return err
 }
 
-func (s *SupabaseRepository) GetUserByID(ctx context.Context, id int) (*model.User, error) {
-	query := `SELECT * FROM users WHERE id = $1`
-	var user model.User
-	err := s.Conn.QueryRow(ctx, query, id).Scan(&user.ID, &user.Name, &user.Email)
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
+// close db connection
+func (r *SupabaseRepository) Close(ctx context.Context) error {
+	return r.Conn.Close(ctx)
 }
 
-func (s *SupabaseRepository) CreateUser(ctx context.Context, user *model.User) error {
-	query := `INSERT INTO users (name, email) VALUES ($1, $2)`
-	_, err := s.Conn.Exec(ctx, query, user.Name, user.Email)
-	if err != nil {
-		return err
+// db helth check
+func (r *SupabaseRepository) HealthCheck(ctx context.Context) error {
+	return r.Conn.Ping(ctx)
+}
+
+// ex4
+func (s *SupabaseRepository) Insert(ctx context.Context, table string, data map[string]interface{}) error {
+	columns := []string{}
+	values := []interface{}{}
+	placeholders := []string{}
+
+	for col, val := range data {
+		columns = append(columns, col)
+		values = append(values, val)
+		placeholders = append(placeholders, fmt.Sprintf("$%d", len(values)))
 	}
 
-	return nil
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, strings.Join(columns, ", "), strings.Join(placeholders, ", "))
+	_, err := s.Conn.Exec(ctx, query, values...)
+	return err
 }
