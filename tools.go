@@ -7,4 +7,5 @@ package main
 
 import (
 	_ "github.com/cosmtrek/air"
+	_ "github.com/golang/mock/mockgen"
 )
