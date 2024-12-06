@@ -42,3 +42,8 @@ func (u *UserUsecase) CreateUser(ctx context.Context, user *model.User) error {
 
 	return u.repo.CreateUser(ctx, user)
 }
+
+// TODO: あとで
+func (u *UserUsecase) CreateUserWithLog(ctx context.Context, user *model.User, logMessage string) error {
+	return nil
+}
