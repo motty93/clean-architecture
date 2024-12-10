@@ -9,43 +9,57 @@ import (
 	"github.com/motty93/clean-architecture/internal/domain/service"
 	"github.com/motty93/clean-architecture/internal/infrastructure"
 	"github.com/motty93/clean-architecture/internal/interface/handler"
+	"github.com/motty93/clean-architecture/internal/interface/routes"
 	"github.com/motty93/clean-architecture/internal/repository"
 	"github.com/motty93/clean-architecture/internal/usecase"
+	"go.uber.org/dig"
 )
 
 var (
 	dbUrl string
 )
 
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello, World!"))
-}
+func buildContainer() *dig.Container {
+	container := dig.New()
 
-func init() {
-	dbUrl = os.Getenv("DATABASE_URL")
-	if dbUrl == "" {
-		log.Fatal("DATABASE_URL is required")
-	}
+	// register service
+	container.Provide(func() string { return os.Getenv("DATABASE_URL") })
+	container.Provide(infrastructure.NewDatabaseConnection)
+	container.Provide(infrastructure.NewSupabaseRepository)
 
-	log.Printf("Database URL: %s", dbUrl)
+	// user
+	container.Provide(repository.NewUserRepository)
+	container.Provide(service.NewUserService)
+	container.Provide(usecase.NewUserUsecase)
+	container.Provide(handler.NewUserHandler)
+
+	return container
 }
 
 func main() {
-	conn, err := infrastructure.NewDatabaseConnection(dbUrl)
+	container := buildContainer()
+	cleanupManager := infrastructure.NewCleanupManager()
+
+	// init and run server
+	err := container.Invoke(func(
+		userHandler *handler.UserHandler,
+		db *infrastructure.SupabaseRepository,
+	) {
+		// cleanup
+		cleanupManager.Add(func() error {
+			log.Println("Closing database connection...")
+			return db.Conn.Close(context.Background())
+		})
+
+		mux := http.NewServeMux()
+
+		// register routes
+		routes.ResisterApplicationRoutes(mux)
+		routes.RegisterUserRoutes(mux, userHandler)
+	})
+
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Println("Server is running on port 8080")
+		http.ListenAndServe(":8080", nil)
 	}
-	defer conn.Close(context.Background())
-
-	supabaseRepo := infrastructure.NewSupabaseRepository(conn)
-	us := service.NewUserService()
-	userRepo := repository.NewUserRepository(supabaseRepo)
-	userUsecase := usecase.NewUseUsecase(userRepo, us)
-	userHandler := handler.NewUserHandler(userUsecase)
-
-	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/user", userHandler.GetUserByID)
-
-	log.Println("Server is running on port 8080")
-	http.ListenAndServe(":8080", nil)
 }
