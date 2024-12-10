@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: ca_postgres
+    restart: always
+    ports:
+      - '5555:5432'
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    volumes:
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ca_postgres_data:/var/lib/postgresql/data
+volumes:
+ ca_postgres_data:
