@@ -11,41 +11,43 @@ air
 
 #### ディレクトリ構成
 ```
-.
 ├── cmd
-│   └── server
-│       └── main.go
-├── go.mod
-├── go.sum
+│   ├── migrate
+│   │   └── .keep
+│   ├── server
+│   │   └── main.go
+│   └── worker
+│       └── .keep
 ├── internal
-│   ├── domain
-│   │   ├── model
-│   │   │   └── user.go
-│   │   └── service
-│   │       ├── user_service.go
-│   │       └── user_service_test.go
-│   ├── infrastructure
-│   │   ├── database.go
-│   │   ├── slack_service.go
-│   │   ├── slack_service_test.go
-│   │   └── supabase_repository.go
-│   │   └── supabase_repository_test.go
-│   ├── interface
-│   │   ├── cli
-│   │   │   ├── user_command.go
-│   │   │   └── user_command_test.go
-│   │   └── handler
-│   │       ├── user_handler.go
-│   │       └── user_handler_test.go
-│   ├── repository
-│   │   ├── user_repository.go
-│   │   └── user_repository_test.go
-│   ├── scheduler
-│   │   └── job_scheduler.go
-│   │   └── job_scheduler_test.go
-│   └── usecase
-│       ├── user_usecase.go
-│       └── user_usecase_test.go
+    ├── domain
+    │   ├── model
+    │   │   └── user.go
+    │   └── service
+    │       ├── user_service.go
+    │       └── user_service_test.go
+    ├── infrastructure
+    │   ├── cleanup.go
+    │   ├── database.go
+    │   ├── slack_service.go
+    │   └── supabase_repository.go
+    ├── interface
+    │   ├── cli
+    │   │   ├── user_command.go
+    │   │   └── user_command_test.go
+    │   ├── handler
+    │   │   ├── user_handler.go
+    │   │   └── user_handler_test.go
+    │   └── routes
+    │       ├── application_routes.go
+    │       └── user_routes.go
+    ├── repository
+    │   ├── user_repository.go
+    │   └── user_repository_test.go
+    ├── scheduler
+    │   └── job_scheduler.go
+    └── usecase
+        ├── user_usecase.go
+        └── user_usecase_test.go
 ```
 
 #### レイヤー構成
@@ -78,7 +80,7 @@ air
 - ユースケース層(`internal/usecase`)
     -  アプリケーションの操作（例: ユーザー取得と通知）を提供する
         -  ファイル: `internal/usecase/user_usecase.go`
-- エントリポイント層(`cmd/server`)
+- エントリポイント(`cmd/server`)
     - エントリポイントで依存関係を構築し、ユースケースを呼び出す
         - サーバー起動
         - ファイル: `cmd/server/main.go`
