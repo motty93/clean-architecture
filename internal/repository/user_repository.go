@@ -18,8 +18,6 @@ type UserRepository interface {
 }
 
 type UserRepositoryImpl struct {
-	// supabase_repositoryで定義したConnを利用するためコメントアウト
-	// Conn *pgx.Conn
 	db *infrastructure.SupabaseRepository
 }
 
@@ -31,7 +29,7 @@ func (r *UserRepositoryImpl) GetAllUsers(ctx context.Context) ([]*model.User, er
 	query := `SELECT * FROM users`
 	rows, err := r.db.Conn.Query(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[UserRepository: GetAllUsers] failed to fetch users: %w", err)
 	}
 	defer rows.Close()
 
@@ -56,7 +54,7 @@ func (r *UserRepositoryImpl) GetUserByID(ctx context.Context, id int) (*model.Us
 		if err == pgx.ErrNoRows {
 			return nil, nil // ユーザーが存在しない場合
 		}
-		return nil, fmt.Errorf("failed to fetch user by ID: %w", err)
+		return nil, fmt.Errorf("[UserRepository: GetUserByID] failed to fetch user by ID: %w", err)
 	}
 	return &user, nil
 }
@@ -68,7 +66,7 @@ func (r *UserRepositoryImpl) CreateUser(ctx context.Context, user *model.User) e
 		query := `INSERT INTO users (name, email) VALUES ($1, $2)`
 		_, err := tx.Exec(ctx, query, user.Name, user.Email)
 		if err != nil {
-			return fmt.Errorf("failed to create user: %w", err)
+			return fmt.Errorf("[UserRepository: CreateUser] failed to create user: %w", err)
 		}
 
 		return nil
